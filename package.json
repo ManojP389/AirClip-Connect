@@ -1,0 +1,22 @@
+{
+  "name": "airclip",
+  "version": "1.0.0",
+  "description": "Local network clipboard sharing for offline team collaboration",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "build": "npm run client:build",
+    "start": "npm run server:start",
+    "server:dev": "cd server && npm run dev",
+    "server:start": "cd server && node server.js",
+    "client:dev": "cd client && npm start",
+    "client:build": "cd client && npm run build"
+  },
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
