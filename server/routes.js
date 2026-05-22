@@ -1,10 +1,14 @@
 const express = require('express');
+const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const { runAsync, getAsync, allAsync } = require('./db');
 const fs = require('fs');
 const path = require('path');
 
 const router = express.Router();
+
+// Multer for file uploads (memory storage)
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -143,7 +147,7 @@ router.delete('/clips/:id', async (req, res) => {
 });
 
 // POST upload file
-router.post('/clips/:id/upload', async (req, res) => {
+router.post('/clips/:id/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file provided' });

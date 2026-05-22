@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import ClipEditor from './components/ClipEditor';
 import ClipList from './components/ClipList';
@@ -13,29 +13,53 @@ function App() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [language, setLanguage] = useState('text');
-  const [showNewClip, setShowNewClip] = useState(true);
 
   // Use a relative API path so clients on other devices call the server host
   // (avoids requests to each device's localhost). Can be overridden with REACT_APP_API_URL.
   const API_URL = process.env.REACT_APP_API_URL || '/api';
 
   // Load clips
-  useEffect(() => {
-    loadClips();
-    const interval = setInterval(loadClips, 3000); // Auto-refresh every 3 seconds
-    return () => clearInterval(interval);
-  }, []);
 
-  async function loadClips() {
+  const loadClipDetails = useCallback(async (id) => {
+    try {
+      const response = await axios.get(`${API_URL}/clips/${id}`);
+      return response.data;
+    } catch (err) {
+      console.error('Failed to load clip details:', err);
+      alert('Failed to load clip details');
+      return null;
+    }
+  }, [API_URL]);
+
+  const loadClips = useCallback(async () => {
     try {
       setError(null);
       const response = await axios.get(`${API_URL}/clips`);
       setClips(response.data);
+      if (selectedClip?.id) {
+        const details = await loadClipDetails(selectedClip.id);
+        if (details) {
+          setSelectedClip(details);
+        }
+      }
       setLoading(false);
     } catch (err) {
       console.error('Failed to load clips:', err);
       setError('Failed to connect to server');
       setLoading(false);
+    }
+  }, [API_URL, selectedClip, loadClipDetails]);
+
+  useEffect(() => {
+    loadClips();
+    const interval = setInterval(loadClips, 3000); // Auto-refresh every 3 seconds
+    return () => clearInterval(interval);
+  }, [loadClips]);
+
+  async function handleSelectClip(clip) {
+    const details = await loadClipDetails(clip.id);
+    if (details) {
+      setSelectedClip(details);
     }
   }
 
@@ -53,11 +77,15 @@ function App() {
         language
       });
       setClips([response.data, ...clips]);
+      // Select the newly created clip so user can immediately upload files
+      const details = await loadClipDetails(response.data.id);
+      if (details) {
+        setSelectedClip(details);
+      }
       setContent('');
       setTitle('');
       setLanguage('text');
-      setSelectedClip(null);
-      alert('✅ Clip created! Your team can see it now.');
+      alert('✅ Clip created! You can now upload files to this clip.');
     } catch (err) {
       console.error('Failed to create clip:', err);
       alert('Failed to create clip');
@@ -83,11 +111,13 @@ function App() {
       const formData = new FormData();
       formData.append('file', file);
       await axios.post(`${API_URL}/clips/${selectedClip.id}/upload`, formData);
-      // Reload the selected clip
-      const response = await axios.get(`${API_URL}/clips/${selectedClip.id}`);
-      setSelectedClip(response.data);
-      const updatedClips = clips.map(c => c.id === response.data.id ? response.data : c);
-      setClips(updatedClips);
+      // Reload the selected clip with file metadata
+      const details = await loadClipDetails(selectedClip.id);
+      if (details) {
+        setSelectedClip(details);
+        const updatedClips = clips.map(c => c.id === details.id ? details : c);
+        setClips(updatedClips);
+      }
     } catch (err) {
       console.error('Failed to upload file:', err);
       alert('Failed to upload file');
@@ -146,7 +176,7 @@ function App() {
                 <ClipList
                   clips={clips}
                   selectedClip={selectedClip}
-                  onSelectClip={setSelectedClip}
+                  onSelectClip={handleSelectClip}
                   onDeleteClip={handleDeleteClip}
                   onCopyClip={copyToClipboard}
                 />

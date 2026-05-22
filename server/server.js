@@ -25,12 +25,6 @@ app.use(express.static(path.join(__dirname, '../client/build')));
 // API Routes
 app.use('/api', routes);
 
-// File upload endpoint with multer
-app.post('/api/clips/:id/upload', upload.single('file'), async (req, res) => {
-  // Delegate to the actual route handler
-  const routes = require('./routes');
-  // This is handled in routes.js
-});
 
 // Serve React app for all other routes
 app.get('*', (req, res) => {
