@@ -1,4 +1,4 @@
-# AirClip 🎯
+# AirClip 
 
 **Local Network Clipboard Sharing** — Share text, code, and files instantly across devices on the same Wi-Fi network.
 
